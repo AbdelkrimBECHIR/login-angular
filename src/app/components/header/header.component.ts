@@ -8,5 +8,21 @@ import { Component } from '@angular/core';
   styleUrl: './header.component.css'
 })
 export class HeaderComponent {
+  isMenuOpen = false;
+  isProfileMenuOpen = false;
+
+  toggleMenu() {
+    this.isMenuOpen = !this.isMenuOpen;
+    if (this.isMenuOpen) {
+      this.isProfileMenuOpen = false;
+    }
+  }
+
+  toggleProfileMenu() {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+    if (this.isProfileMenuOpen) {
+      this.isMenuOpen = false;
+    }
+  }
 
 }
