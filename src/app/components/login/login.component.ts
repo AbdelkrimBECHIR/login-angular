@@ -1,6 +1,8 @@
+// src/app/components/login/login.component.ts
 import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
+import { AuthService } from '../../services/auth.services';
 
 @Component({
   selector: 'app-login',
@@ -12,10 +14,14 @@ import { RouterLink } from '@angular/router';
 export class LoginComponent {
   LoginForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
-    password: new FormControl('', [Validators.required, Validators.minLength(8), Validators.pattern('(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{8,}')])
+    password: new FormControl('', [Validators.required, Validators.minLength(8) /*, Validators.pattern('(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{8,}')*/])
   });
 
-  // Validation pour l'email
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
   emailError(): string {
     const emailControl = this.LoginForm.get('email');
     if (!emailControl) return '';
@@ -29,7 +35,6 @@ export class LoginComponent {
     return '';
   }
 
-  // Validation pour le mot de passe
   passwordError(): string {
     const passwordControl = this.LoginForm.get('password');
     if (!passwordControl) return '';
@@ -46,17 +51,28 @@ export class LoginComponent {
     return '';
   }
 
-  // Soumission du formulaire
   submitLoginForm() {
     if (this.LoginForm.valid) {
-      console.log('Formulaire de connexion soumis:', this.LoginForm.value);
-      // Ajouter ici la logique pour envoyer les données au serveur
+      const loginData = {
+        email: this.LoginForm.get('email')?.value || '',
+        password: this.LoginForm.get('password')?.value || ''
+      };
+
+      this.authService.login(loginData).subscribe({
+        next: (response) => {
+          console.log('Connexion réussie', response);
+          this.router.navigate(['/home']);
+        },
+        error: (error) => {
+          console.error('Erreur de connexion:', error);
+          // Gérer l'erreur (afficher un message à l'utilisateur par exemple)
+        }
+      });
     } else {
       this.markFormGroupTouched(this.LoginForm);
     }
   }
 
-  // Utilitaire pour marquer tous les champs comme touchés
   private markFormGroupTouched(formGroup: FormGroup) {
     Object.values(formGroup.controls).forEach(control => {
       control.markAsTouched();
