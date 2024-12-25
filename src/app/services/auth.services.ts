@@ -1,18 +1,9 @@
-
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, tap, finalize } from 'rxjs';
 
 export interface AuthResponse {
-  id: number;
-  email: string;
-  token: string;
-}
-
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
+  access_token: string;  // Modifié pour correspondre à la réponse de l'API
 }
 
 export interface LoginRequest {
@@ -24,40 +15,51 @@ export interface LoginRequest {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'https://api.escuelajs.co/api/v1/auth'; // Using Platzi Fake Store API
-  private tokenSubject = new BehaviorSubject<string | null>(localStorage.getItem('token'));
+  private apiUrl = 'https://api.escuelajs.co/api/v1/auth';
+  private tokenKey = 'auth_token';
+  private tokenSubject = new BehaviorSubject<string | null>(null);
   public token$ = this.tokenSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // Initialiser avec le token stocké
+    const storedToken = localStorage.getItem(this.tokenKey);
+    if (storedToken) {
+      this.tokenSubject.next(storedToken);
+    }
+  }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap(response => {
-        localStorage.setItem('token', response.token);
-        this.tokenSubject.next(response.token);
+        console.log('Login response:', response);
+        if (response && response.access_token) {
+          this.setToken(response.access_token);
+        }
+      }),
+      finalize(() => {
+        console.log('Login request completed');
       })
     );
   }
 
-  register(userData: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData).pipe(
-      tap(response => {
-        localStorage.setItem('token', response.token);
-        this.tokenSubject.next(response.token);
-      })
-    );
+  private setToken(token: string): void {
+    console.log('Setting token:', token);
+    localStorage.setItem(this.tokenKey, token);
+    this.tokenSubject.next(token);
   }
 
   logout(): void {
-    localStorage.removeItem('token');
+    localStorage.removeItem(this.tokenKey);
     this.tokenSubject.next(null);
   }
 
   isLoggedIn(): boolean {
-    return !!this.tokenSubject.value;
+    const token = localStorage.getItem(this.tokenKey);
+    console.log('Checking isLoggedIn, token exists:', !!token);
+    return !!token;
   }
 
   getToken(): string | null {
-    return this.tokenSubject.value;
+    return localStorage.getItem(this.tokenKey);
   }
 }
